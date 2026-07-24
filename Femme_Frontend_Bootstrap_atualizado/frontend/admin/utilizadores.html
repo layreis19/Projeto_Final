@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Femme Admin · Utilizadores</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="admin-shell">
+  <nav class="navbar navbar-expand-md navbar-admin">
+    <div class="container">
+      <a class="navbar-brand" href="aprovacoes.html">Femme Admin</a>
+      <div class="d-flex gap-3 align-items-center ms-auto">
+        <a class="nav-link" href="aprovacoes.html">Aprovações</a>
+        <a class="nav-link" href="avaliacoes.html">Avaliações</a>
+        <a class="nav-link fw-semibold" href="utilizadores.html">Utilizadores</a>
+        <span id="userBox" class="text-white-50"></span>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container py-5">
+    <h1 class="font-display">Gestão de utilizadores</h1>
+    <input type="text" id="pesquisa" class="form-control mb-3" style="max-width:320px;" placeholder="🔍 Pesquisar por nome">
+    <div id="msgBox"></div>
+    <div class="card card-femme"><div id="lista" class="list-group list-group-flush"></div></div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../js/api.js"></script>
+  <script>
+    const user = Sessao.exigirTipo("admin", "login.html");
+    document.getElementById("userBox").innerHTML = `Olá, ${user.nome}`;
+    let todos = [];
+
+    async function carregar() {
+      todos = await apiFetch("/admin/utilizadores");
+      render();
+    }
+
+    function render() {
+      const q = document.getElementById("pesquisa").value.trim().toLowerCase();
+      const filtrados = q ? todos.filter(u => u.nome.toLowerCase().includes(q)) : todos;
+
+      document.getElementById("lista").innerHTML = filtrados.length ? filtrados.map(u => `
+        <div class="list-group-item d-flex align-items-center gap-3">
+          <div class="avatar-placeholder" style="width:30px;height:30px;"></div>
+          <div class="flex-grow-1">
+            <div class="fw-semibold small">${u.nome}</div>
+            <div class="small text-muted text-capitalize">${u.tipo}</div>
+          </div>
+          ${badgeEstado(u.estado)}
+          <button class="btn btn-sm ${u.estado === "ativo" ? "btn-outline-primary" : "btn-primary"}"
+            onclick="mudarEstado(${u.id}, '${u.estado === "ativo" ? "desativado" : "ativo"}')">
+            ${u.estado === "ativo" ? "Desativar" : "Ativar"}
+          </button>
+        </div>
+      `).join("") : `<div class="list-group-item text-muted">Nenhum utilizador encontrado.</div>`;
+    }
+
+    async function mudarEstado(id, novoEstado) {
+      await apiFetch(`/admin/utilizadores/${id}/estado`, { method: "PUT", body: { estado: novoEstado } });
+      carregar();
+    }
+
+    document.getElementById("pesquisa").addEventListener("input", render);
+    carregar();
+  </script>
+</body>
+</html>

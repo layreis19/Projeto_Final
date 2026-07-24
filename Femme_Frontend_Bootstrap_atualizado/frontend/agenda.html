@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Femme · A Minha Agenda</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="navbar navbar-expand-md navbar-femme">
+    <div class="container">
+      <a class="navbar-brand" href="index.html">Femme</a>
+      <div class="d-flex gap-3 align-items-center ms-auto">
+        <a class="nav-link" href="index.html">Descobrir</a>
+        <a class="nav-link" href="agenda.html">A Minha Agenda</a>
+        <span id="userBox"></span>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container py-5">
+    <h1 class="font-display">A Minha Agenda</h1>
+    <div id="msgBox"></div>
+
+    <h2 class="font-display h5 mt-4">Ativas</h2>
+    <div class="card card-femme"><div id="ativas" class="list-group list-group-flush"></div></div>
+
+    <h2 class="font-display h5 mt-5">Concluídas</h2>
+    <div class="card card-femme"><div id="concluidas" class="list-group list-group-flush"></div></div>
+  </main>
+
+  <!-- Modal de avaliação (Bootstrap) -->
+  <div class="modal fade" id="avaliarModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title font-display">Avaliar</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div id="avaliarMsg"></div>
+          <div class="star-input mb-3" id="starsInput">
+            <span data-v="1">★</span><span data-v="2">★</span><span data-v="3">★</span><span data-v="4">★</span><span data-v="5">★</span>
+          </div>
+          <textarea id="comentario" class="form-control" rows="3" placeholder="Comentário (opcional)"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-primary" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-primary" id="enviarAvaliacao">Enviar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    const user = Sessao.exigirTipo("cliente", "login.html");
+    document.getElementById("userBox").innerHTML = `Olá, ${user.nome}`;
+
+    let classificacaoEscolhida = 0;
+    let marcacaoParaAvaliar = null;
+    const modalAvaliar = new bootstrap.Modal(document.getElementById("avaliarModal"));
+
+    async function carregar() {
+      const marcacoes = await apiFetch("/marcacoes/minhas");
+      const ativas = marcacoes.filter(m => ["pendente", "confirmada"].includes(m.estado));
+      const concluidas = marcacoes.filter(m => m.estado === "concluida");
+
+      document.getElementById("ativas").innerHTML = ativas.length ? ativas.map(m => `
+        <div class="list-group-item d-flex align-items-center gap-3">
+          <div class="flex-grow-1">
+            <div class="fw-semibold">${m.servico_nome} · ${m.profissional_nome}</div>
+            <div class="small text-muted">${formatarData(m.data_hora)}</div>
+          </div>
+          ${badgeEstado(m.estado)}
+          ${["pendente","confirmada"].includes(m.estado) ? `<button class="btn btn-outline-primary btn-sm" onclick="cancelar(${m.id})">Cancelar</button>` : ""}
+          <a href="mensagens.html?marcacao=${m.id}" class="btn btn-sm" style="background:var(--bs-secondary);color:#fff;">Mensagens</a>
+        </div>
+      `).join("") : `<div class="list-group-item text-muted">Sem marcações ativas.</div>`;
+
+      document.getElementById("concluidas").innerHTML = concluidas.length ? concluidas.map(m => `
+        <div class="list-group-item d-flex align-items-center gap-3">
+          <div class="flex-grow-1">
+            <div class="fw-semibold">${m.servico_nome} · ${m.profissional_nome}</div>
+            <div class="small text-muted">${formatarData(m.data_hora)}</div>
+          </div>
+          ${m.tem_avaliacao ? `<span class="badge text-bg-primary">Avaliação enviada</span>`
+            : `<button class="btn btn-primary btn-sm" onclick="abrirAvaliacao(${m.id})">✍ Avaliar</button>`}
+        </div>
+      `).join("") : `<div class="list-group-item text-muted">Ainda sem marcações concluídas.</div>`;
+    }
+
+    async function cancelar(id) {
+      const msgBox = document.getElementById("msgBox");
+      try {
+        await apiFetch(`/marcacoes/${id}/cancelar`, { method: "PUT" });
+        alertaSucesso(msgBox, "Marcação cancelada.");
+        carregar();
+      } catch (err) { alertaErro(msgBox, err.message); }
+    }
+
+    function abrirAvaliacao(idMarcacao) {
+      marcacaoParaAvaliar = idMarcacao;
+      classificacaoEscolhida = 0;
+      document.getElementById("comentario").value = "";
+      document.getElementById("avaliarMsg").innerHTML = "";
+      atualizarEstrelas();
+      modalAvaliar.show();
+    }
+    function atualizarEstrelas() {
+      document.querySelectorAll("#starsInput span").forEach(s => {
+        s.classList.toggle("filled", Number(s.dataset.v) <= classificacaoEscolhida);
+      });
+    }
+    document.querySelectorAll("#starsInput span").forEach(s => {
+      s.onclick = () => { classificacaoEscolhida = Number(s.dataset.v); atualizarEstrelas(); };
+    });
+    document.getElementById("enviarAvaliacao").onclick = async () => {
+      const msgBox = document.getElementById("avaliarMsg");
+      if (!classificacaoEscolhida) { alertaErro(msgBox, "Escolhe uma classificação."); return; }
+      try {
+        await apiFetch("/avaliacoes", {
+          method: "POST",
+          body: { id_marcacao: marcacaoParaAvaliar, classificacao: classificacaoEscolhida, comentario: document.getElementById("comentario").value },
+        });
+        modalAvaliar.hide();
+        carregar();
+      } catch (err) { alertaErro(msgBox, err.message); }
+    };
+
+    carregar();
+  </script>
+</body>
+</html>

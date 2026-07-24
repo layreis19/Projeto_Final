@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Femme · Registar</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="navbar navbar-expand-md navbar-femme">
+    <div class="container">
+      <a class="navbar-brand" href="index.html">Femme</a>
+    </div>
+  </nav>
+
+  <main class="container py-5" style="max-width:380px;">
+    <h1 class="font-display">Criar conta</h1>
+    <p class="text-muted mb-4">Poucos campos, para começar depressa.</p>
+
+    <div id="msgBox"></div>
+    <form id="regForm">
+      <div class="mb-3">
+        <label class="form-label small text-muted">Sou...</label>
+        <select id="tipo" class="form-select">
+          <option value="cliente">Cliente — quero marcar serviços</option>
+          <option value="profissional">Profissional — quero divulgar o meu negócio</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label small text-muted">Nome</label>
+        <input type="text" id="nome" class="form-control" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label small text-muted">Email</label>
+        <input type="email" id="email" class="form-control" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label small text-muted">Palavra-passe (mín. 6 caracteres)</label>
+        <input type="password" id="password" class="form-control" minlength="6" required>
+      </div>
+
+      <div id="blocoDocumentos" class="card card-femme p-3 mb-3 d-none">
+        <p class="fw-semibold mb-1">Documentos para aprovação</p>
+        <p class="small text-muted mb-3">
+          A tua conta de profissional fica <strong>pendente</strong> até um administrador validar
+          os documentos abaixo. Aceita-se PDF, JPG ou PNG (máx. 5MB cada).
+        </p>
+        <div class="mb-3">
+          <label class="form-label small text-muted">Documento de identificação (CC / BI)</label>
+          <input type="file" id="docIdentificacao" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+        </div>
+        <div class="mb-1">
+          <label class="form-label small text-muted">Comprovativo de atividade (recibos verdes, certificado, alvará, etc.)</label>
+          <input type="file" id="docAtividade" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+        </div>
+      </div>
+
+      <button class="btn btn-primary w-100" type="submit">Criar conta</button>
+    </form>
+    <p class="small mt-3">Já tens conta? <a href="login.html" class="fw-semibold" style="color:var(--bs-primary);">Entrar</a></p>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    const blocoDocumentos = document.getElementById("blocoDocumentos");
+    const docIdentificacao = document.getElementById("docIdentificacao");
+    const docAtividade = document.getElementById("docAtividade");
+
+    function atualizarBlocoDocumentos() {
+      const isProfissional = tipo.value === "profissional";
+      blocoDocumentos.classList.toggle("d-none", !isProfissional);
+      docIdentificacao.required = isProfissional;
+      docAtividade.required = isProfissional;
+    }
+    tipo.addEventListener("change", atualizarBlocoDocumentos);
+    atualizarBlocoDocumentos();
+
+    document.getElementById("regForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msgBox = document.getElementById("msgBox");
+      const isProfissional = tipo.value === "profissional";
+
+      if (isProfissional && (!docIdentificacao.files[0] || !docAtividade.files[0])) {
+        alertaErro(msgBox, "Carrega os dois documentos pedidos para submeter o teu perfil a aprovação.");
+        return;
+      }
+
+      try {
+        const data = await apiFetch("/auth/registo", {
+          method: "POST", auth: false,
+          body: { nome: nome.value, email: email.value, password: password.value, tipo: tipo.value },
+        });
+        Sessao.guardar(data.token, data.utilizador);
+
+        if (isProfissional) {
+          const formData = new FormData();
+          formData.append("documento_identificacao", docIdentificacao.files[0]);
+          formData.append("documento_atividade", docAtividade.files[0]);
+          try {
+            await apiUpload("/profissional/documentos", formData);
+          } catch (uploadErr) {
+            // A conta já foi criada; avisa mas não bloqueia o fluxo — os documentos
+            // podem ser reenviados mais tarde a partir da área de profissional.
+            alertaErro(msgBox, `Conta criada, mas houve um problema a enviar os documentos: ${uploadErr.message}. Podes reenviá-los na tua área de profissional.`);
+          }
+          window.location.href = "profissional/pagina.html";
+        } else {
+          window.location.href = "index.html";
+        }
+      } catch (err) {
+        alertaErro(msgBox, err.message);
+      }
+    });
+  </script>
+</body>
+</html>

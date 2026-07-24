@@ -1,0 +1,54 @@
+/* Femme — camada de marca sobre o Bootstrap 5 (variáveis do Bootstrap) */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Work+Sans:wght@400;500;600&display=swap');
+
+:root{
+  --bs-primary: #7A2436;
+  --bs-primary-rgb: 122,36,54;
+  --bs-secondary: #6B7A5E;
+  --bs-body-font-family: 'Work Sans', sans-serif;
+  --bs-body-bg: #F6F1E9;
+  --femme-gold: #C9A227;
+}
+body{ background: var(--bs-body-bg); }
+.font-display{ font-family: 'Fraunces', serif; font-weight: 600; }
+
+.navbar-femme{ background:#fff; border-bottom:1px solid rgba(122,36,54,.12); }
+.navbar-femme .navbar-brand{ font-family:'Fraunces',serif; font-weight:600; color:var(--bs-primary)!important; font-size:1.4rem; }
+.navbar-femme .nav-link{ color:#2A1420; }
+.navbar-femme .nav-link:hover{ color: var(--bs-primary); }
+
+.navbar-admin{ background:#2A1420; }
+.navbar-admin .navbar-brand{ color: var(--femme-gold)!important; }
+.navbar-admin .nav-link{ color:#EFE7D8!important; }
+
+.btn-primary{ background-color: var(--bs-primary); border-color: var(--bs-primary); }
+.btn-primary:hover{ background-color:#9C3C4E; border-color:#9C3C4E; }
+.btn-outline-primary{ color: var(--bs-primary); border-color: var(--bs-primary); }
+.btn-outline-primary:hover{ background-color: var(--bs-primary); }
+.btn-gold{ background-color: var(--femme-gold); border-color: var(--femme-gold); color:#2A1420; font-weight:600; }
+
+.avatar-placeholder{
+  width:44px; height:44px; border-radius:50%;
+  background:linear-gradient(135deg,#9C3C4E,var(--femme-gold));
+  flex:none;
+}
+.cover-placeholder{
+  height:70px; border-radius:.5rem;
+  background:linear-gradient(135deg,#9C3C4E,var(--femme-gold));
+  position:relative; margin-bottom:2rem;
+}
+.cover-placeholder .avatar-placeholder{ position:absolute; bottom:-20px; left:14px; border:3px solid #fff; }
+
+.card-femme{ border:1px solid rgba(122,36,54,.12); border-radius:.9rem; box-shadow:0 10px 26px rgba(42,20,32,.08); }
+
+.chip-cat{ cursor:pointer; }
+.chip-cat.active{ background-color: var(--bs-primary)!important; color:#fff!important; }
+
+.msg-bubble{ max-width:75%; padding:.5rem .8rem; border-radius:1rem; font-size:.9rem; }
+.msg-bubble.them{ background:#fff; border:1px solid rgba(122,36,54,.15); }
+.msg-bubble.me{ background: var(--bs-primary); color:#fff; margin-left:auto; }
+
+.star-input span{ cursor:pointer; font-size:1.6rem; color:#ccc; }
+.star-input span.filled{ color: var(--femme-gold); }
+
+footer.femme-footer{ text-align:center; font-family:'Fraunces',serif; font-style:italic; opacity:.55; padding:3rem 0; }
